@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # One-command launch: Temporal dev server + worker + web app.
-# Fill out the form at http://localhost:8000 to trigger the workflow.
+# Opens both the Temporal Web UI (localhost:8233) and the application form
+# (localhost:8000) automatically. Fill out the form to trigger the workflow,
+# then watch it execute in the Web UI tab.
 #
 # For the crash-recovery demo, kill *just* the worker (PID printed below),
 # then restart it on its own with: .venv/bin/python -m program_demo.worker
@@ -74,6 +76,7 @@ echo ""
 echo "Press Ctrl+C to stop everything."
 echo ""
 
+open "http://localhost:8233" >/dev/null 2>&1 || true
 open "http://localhost:8000" >/dev/null 2>&1 || true
 
 "$VENV_UVICORN" program_demo.web:app --host 0.0.0.0 --port 8000
