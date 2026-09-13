@@ -61,11 +61,30 @@ program_demo/
 
 data/roster.json          # git-tracked; add_to_roster appends accepted applicants here
 tests/test_workflow.py    # time-skipping tests for the parts that unit-test cleanly
+run.sh                    # one-command launch: dev server + worker + web app
 ```
 
 ## Running it
 
-Three terminals, left running for the whole session:
+### Quick start — one command
+
+```bash
+./run.sh
+```
+
+Starts the Temporal dev server, waits for it, starts the worker, opens
+`http://localhost:8000` in your browser, and runs the web app in the
+foreground. Prints the worker's PID and the exact restart command up front —
+that's what you need for the crash-recovery demo (step 4 below): kill that
+PID, then run the printed command to restart just the worker on its own.
+Ctrl+C in this terminal stops everything (dev server, worker, web app).
+
+Requires `.venv` already set up and `.env` filled in (see Setup above).
+
+### Manual — three terminals
+
+Useful if you'd rather show each piece starting up individually, or want the
+worker in its own terminal from the start:
 
 ```bash
 # Terminal 1 — Temporal dev server + Web UI (localhost:8233)
@@ -86,7 +105,7 @@ uvicorn program_demo.web:app --reload
 Run through in order. Keep the Temporal Web UI (`http://localhost:8233`) open
 on a second window throughout.
 
-1. **Start everything** — dev server, worker, web app. Briefly show
+1. **Start everything** — `./run.sh`, or the three terminals manually. Briefly show
    `worker.py`'s registration call and explain task queues: the worker polls
    one queue for both workflow and activity tasks.
 
@@ -101,19 +120,23 @@ on a second window throughout.
    what just happened.
 
 4. **Run #2 — crash recovery (the headline moment).** Submit a second
-   application. Watch Terminal 2's logs move through `validate_application`
-   into `screen_applicant`'s `"Screening check X/5"` lines.
-   - After ~2 of 5 checks print, hard-kill the worker:
-     `ps aux | grep program_demo.worker` → `kill -9 <pid>` (a hard kill, not
-     Ctrl+C — there's no graceful shutdown involved).
+   application. Watch the worker's log move through `validate_application`
+   into `screen_applicant`'s `"Screening check X/5"` lines (with `./run.sh`,
+   this prints straight to your terminal; with the manual setup, it's
+   Terminal 2).
+   - After ~2 of 5 checks print, hard-kill the worker: with `./run.sh`, use the
+     PID it printed at startup — `kill -9 <pid>`; manually, find it with
+     `ps aux | grep program_demo.worker` first. Either way, a hard kill, not
+     Ctrl+C — there's no graceful shutdown involved.
    - In the Web UI's Pending Activities panel, show the heartbeat detail frozen
      at the last reported step. Once the 5s heartbeat timeout elapses, point
      out the `ActivityTaskTimedOut` event followed by a new
      `ActivityTaskScheduled`.
-   - Restart the worker with the identical command. Watch it log
-     `"Resuming screening from check 3/5 (heartbeat detail found)"` and finish
-     the remaining checks — it did not start over. The status page picks this
-     up automatically via its poll loop.
+   - Restart *just* the worker with the command `run.sh` printed
+     (`.venv/bin/python -m program_demo.worker`), or the manual command in its
+     own terminal. Watch it log `"Resuming screening from check 3/5 (heartbeat
+     detail found)"` and finish the remaining checks — it did not start over.
+     The status page picks this up automatically via its poll loop.
 
 5. **Run #3 — signal / withdrawal.** Submit a third application. While
    `screen_applicant` is still running (or right after submitting), click
